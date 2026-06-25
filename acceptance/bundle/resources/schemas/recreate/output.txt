@@ -5,7 +5,7 @@ Deploying resources...
 Updating deployment state...
 Deployment complete!
 
->>> print_requests
+>>> print_requests.py //unity
 {
   "method": "POST",
   "path": "/api/2.1/unity-catalog/schemas",
@@ -44,7 +44,7 @@ Deploying resources...
 Updating deployment state...
 Deployment complete!
 
->>> print_requests
+>>> print_requests.py //unity
 {
   "method": "DELETE",
   "path": "/api/2.1/unity-catalog/schemas/main.myschema",
@@ -76,7 +76,7 @@ Error: Resource catalog.SchemaInfo not found: main.myschema
   "effective_predictive_optimization_flag": {
     "inherited_from_name": "[METASTORE_NAME]",
     "inherited_from_type": "METASTORE",
-    "value": "ENABLE"
+    "value": "DISABLE"
   },
   "enable_predictive_optimization": "INHERIT",
   "full_name": "newmain.myschema",
