@@ -98,10 +98,9 @@ func makeCommand(method string) *cobra.Command {
 			}
 
 			if hasProfileFlag {
-				// An explicit --profile takes precedence over auth env vars; see
-				// databrickscfg.ProfileAuthLoaders (#5096). NormalizeDatabricksConfigFromEnv
-				// is skipped too: the host comes from the profile, not DATABRICKS_HOST,
-				// so promoting its ?o=/?a= query params would be wrong.
+				// An explicit --profile wins over auth env vars; see
+				// databrickscfg.ProfileAuthLoaders (#5096). Skip env host
+				// normalization too, since the host comes from the profile.
 				cfg.Loaders = databrickscfg.ProfileAuthLoaders
 			} else {
 				auth.NormalizeDatabricksConfigFromEnv(cmd.Context(), cfg)

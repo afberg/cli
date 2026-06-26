@@ -178,10 +178,9 @@ func (w *Workspace) Client(ctx context.Context) (*databricks.WorkspaceClient, er
 
 	switch {
 	case w.Profile != "":
-		// An explicit profile (--profile or workspace.profile) takes precedence
-		// over auth env vars; see databrickscfg.ProfileAuthLoaders (#5096). The
-		// ValidateConfigAndProfileHost check below still enforces that the bundle
-		// host matches the profile host.
+		// An explicit profile wins over auth env vars; see
+		// databrickscfg.ProfileAuthLoaders (#5096). ValidateConfigAndProfileHost
+		// below still checks the bundle host matches the profile host.
 		cfg.Loaders = databrickscfg.ProfileAuthLoaders
 	case w.Host != "":
 		// If only the host is configured, we try and unambiguously match it to
