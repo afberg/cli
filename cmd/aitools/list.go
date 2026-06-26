@@ -148,7 +148,7 @@ func buildListOutput(ctx context.Context, scope string) (listOutput, error) {
 	names := slices.Sorted(maps.Keys(manifest.Skills))
 
 	out := listOutput{
-		Release: strings.TrimPrefix(ref, "v"),
+		Release: installer.DisplaySkillsVersion(ref),
 		Skills:  make([]skillEntry, 0, len(names)),
 		Summary: map[string]scopeSummary{},
 	}
@@ -269,7 +269,7 @@ func renderListJSON(w io.Writer, out listOutput) error {
 }
 
 func renderListText(ctx context.Context, out listOutput, scope string) {
-	cmdio.LogString(ctx, "Available skills (v"+out.Release+"):")
+	cmdio.LogString(ctx, "Available skills ("+versionToken(out.Release)+"):")
 	cmdio.LogString(ctx, "")
 
 	bothScopes := scope == "" &&
@@ -309,9 +309,9 @@ func agentStatusLabel(a agentEntry) string {
 	case statusManualAddPlugin:
 		return "plugin · add manually with /add-plugin"
 	case statusUpdateAvailable:
-		return "plugin · v" + a.Plugin.Version + " · update available"
+		return "plugin · " + versionToken(a.Plugin.Version) + " · update available"
 	default:
-		return "plugin · v" + a.Plugin.Version + " · up to date"
+		return "plugin · " + versionToken(a.Plugin.Version) + " · up to date"
 	}
 }
 
