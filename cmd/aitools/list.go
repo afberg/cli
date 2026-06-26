@@ -84,15 +84,13 @@ type agentEntry struct {
 
 type pluginInfo struct {
 	Version string `json:"version,omitempty"`
-	// Managed is true when the CLI installed and tracks the plugin; false for
-	// agents whose plugin is added manually (Cursor).
+	// Managed is true when the CLI installed and tracks the plugin.
 	Managed bool `json:"managed"`
 }
 
 const (
 	statusUpToDate        = "up_to_date"
 	statusUpdateAvailable = "update_available"
-	statusManualAddPlugin = "manual_add_plugin"
 )
 
 type skillEntry struct {
@@ -187,18 +185,17 @@ func buildListOutput(ctx context.Context, scope string) (listOutput, error) {
 		out.Summary[installer.ScopeProject] = scopeSummary{Installed: projectCount, Total: len(names), loaded: projectState != nil}
 	}
 
-	out.Agents = buildAgentEntries(ctx, out.Release, globalState, projectState)
+	out.Agents = buildAgentEntries(out.Release, globalState, projectState)
 
 	return out, nil
 }
 
 // buildAgentEntries reports the real per-agent plugin state: each plugin agent
-// with a recorded install, plus Cursor (which is added manually) when present.
-// When a plugin is recorded in more than one scope, status aggregates across
-// them (any out-of-date scope reports update_available) and version reflects the
-// record that determined the status, so a stale scoped install is never hidden
-// behind an up-to-date one.
-func buildAgentEntries(ctx context.Context, release string, states ...*installer.InstallState) []agentEntry {
+// with a recorded install. When a plugin is recorded in more than one scope,
+// status aggregates across them (any out-of-date scope reports update_available)
+// and version reflects the record that determined the status, so a stale scoped
+// install is never hidden behind an up-to-date one.
+func buildAgentEntries(release string, states ...*installer.InstallState) []agentEntry {
 	var entries []agentEntry
 	for i := range agents.Registry {
 		a := &agents.Registry[i]
@@ -228,15 +225,6 @@ func buildAgentEntries(ctx context.Context, release string, states ...*installer
 		}
 		if info != nil {
 			entries = append(entries, agentEntry{Name: a.Name, Plugin: info, Status: status})
-			continue
-		}
-
-		if a.Plugin.ManualOnly && (a.Detected(ctx) || a.HasBinary(ctx)) {
-			entries = append(entries, agentEntry{
-				Name:   a.Name,
-				Plugin: &pluginInfo{Managed: false},
-				Status: statusManualAddPlugin,
-			})
 		}
 	}
 	return entries
@@ -322,14 +310,10 @@ func renderSkillTable(skills []skillEntry, bothScopes bool) string {
 }
 
 func agentStatusLabel(a agentEntry) string {
-	switch a.Status {
-	case statusManualAddPlugin:
-		return "plugin · add manually with /add-plugin"
-	case statusUpdateAvailable:
+	if a.Status == statusUpdateAvailable {
 		return "plugin · " + versionToken(a.Plugin.Version) + " · update available"
-	default:
-		return "plugin · " + versionToken(a.Plugin.Version) + " · up to date"
 	}
+	return "plugin · " + versionToken(a.Plugin.Version) + " · up to date"
 }
 
 func installedStatusFromEntry(s skillEntry, bothScopes bool) string {

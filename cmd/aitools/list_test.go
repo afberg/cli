@@ -3,8 +3,6 @@ package aitools
 import (
 	"bytes"
 	"encoding/json"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -112,7 +110,6 @@ func TestRenderListJSONWithAgents(t *testing.T) {
 		Summary: map[string]scopeSummary{installer.ScopeGlobal: {Installed: 0, Total: 0}},
 		Agents: []agentEntry{
 			{Name: "claude-code", Plugin: &pluginInfo{Version: "0.2.6", Managed: true}, Status: statusUpToDate},
-			{Name: "cursor", Plugin: &pluginInfo{Managed: false}, Status: statusManualAddPlugin},
 		},
 	}
 
@@ -127,26 +124,16 @@ func TestRenderListJSONWithAgents(t *testing.T) {
 	assert.Contains(t, raw, "summary")
 
 	agentsRaw := raw["agents"].([]any)
-	require.Len(t, agentsRaw, 2)
+	require.Len(t, agentsRaw, 1)
 	first := agentsRaw[0].(map[string]any)
 	assert.Equal(t, "claude-code", first["name"])
 	assert.Equal(t, "up_to_date", first["status"])
 	plugin := first["plugin"].(map[string]any)
 	assert.Equal(t, "0.2.6", plugin["version"])
 	assert.Equal(t, true, plugin["managed"])
-
-	second := agentsRaw[1].(map[string]any)
-	assert.Equal(t, "manual_add_plugin", second["status"])
-	assert.Equal(t, false, second["plugin"].(map[string]any)["managed"])
 }
 
 func TestBuildAgentEntries(t *testing.T) {
-	tmp := t.TempDir()
-	t.Setenv("HOME", tmp)
-	t.Setenv("USERPROFILE", tmp)
-	require.NoError(t, os.MkdirAll(filepath.Join(tmp, ".cursor"), 0o755))
-	ctx := cmdio.MockDiscard(t.Context())
-
 	globalState := &installer.InstallState{
 		Plugins: map[string]installer.PluginRecord{
 			"claude-code": {Plugin: "databricks", Version: "0.2.6"},
@@ -154,7 +141,7 @@ func TestBuildAgentEntries(t *testing.T) {
 		},
 	}
 
-	entries := buildAgentEntries(ctx, "0.2.6", globalState, nil)
+	entries := buildAgentEntries("0.2.6", globalState, nil)
 	byName := map[string]agentEntry{}
 	for _, e := range entries {
 		byName[e.Name] = e
@@ -167,18 +154,11 @@ func TestBuildAgentEntries(t *testing.T) {
 	require.Contains(t, byName, "codex")
 	assert.Equal(t, statusUpdateAvailable, byName["codex"].Status)
 
-	// Cursor is detected (config dir) but never CLI-managed.
-	require.Contains(t, byName, "cursor")
-	assert.Equal(t, statusManualAddPlugin, byName["cursor"].Status)
-	assert.False(t, byName["cursor"].Plugin.Managed)
+	// Cursor has no plugin, so it never appears as a plugin agent entry.
+	assert.NotContains(t, byName, "cursor")
 }
 
 func TestBuildAgentEntriesAggregatesScopeStatus(t *testing.T) {
-	tmp := t.TempDir()
-	t.Setenv("HOME", tmp)
-	t.Setenv("USERPROFILE", tmp)
-	ctx := cmdio.MockDiscard(t.Context())
-
 	// Same agent recorded in both scopes: global current, project stale.
 	globalState := &installer.InstallState{Plugins: map[string]installer.PluginRecord{
 		"claude-code": {Plugin: "databricks", Version: "0.2.6"},
@@ -187,7 +167,7 @@ func TestBuildAgentEntriesAggregatesScopeStatus(t *testing.T) {
 		"claude-code": {Plugin: "databricks", Version: "0.2.5"},
 	}}
 
-	entries := buildAgentEntries(ctx, "0.2.6", globalState, projectState)
+	entries := buildAgentEntries("0.2.6", globalState, projectState)
 	byName := map[string]agentEntry{}
 	for _, e := range entries {
 		byName[e.Name] = e
